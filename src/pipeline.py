@@ -1,4 +1,4 @@
-"""End-to-end RoboReviews pipeline."""
+"""End-to-end BestOf pipeline."""
 from __future__ import annotations
 
 import argparse
@@ -19,7 +19,7 @@ from src.sentiment import SentimentAnalyzer
 logger = logging.getLogger(__name__)
 
 
-class RoboReviewsPipeline:
+class BestOfPipeline:
     """Coordinates preprocessing, sentiment, clustering, and aggregation."""
 
     def __init__(self) -> None:
@@ -65,7 +65,7 @@ class RoboReviewsPipeline:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m src.pipeline",
-        description="Run the RoboReviews end-to-end pipeline (preprocess → sentiment → cluster → aggregate).",
+        description="Run the BestOf end-to-end pipeline (preprocess -> sentiment -> cluster -> aggregate).",
     )
     source = parser.add_mutually_exclusive_group()
     source.add_argument(
@@ -94,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging()
     args = _build_parser().parse_args(argv)
 
-    pipeline = RoboReviewsPipeline()
+    pipeline = BestOfPipeline()
 
     if args.from_dir is not None:
         result = pipeline.run_from_dir(args.from_dir, args.output_dir)

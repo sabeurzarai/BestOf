@@ -1,4 +1,4 @@
-"""Core RoboReviews package.
+"""Core BestOf package.
 
 Bootstraps the HuggingFace model cache to point at the project's `models/`
 directory *before* any transformers / sentence-transformers code is imported.
@@ -14,8 +14,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-_PROJECT_ROOT = Path(os.getenv("ROBO_REVIEWS_ROOT", Path(__file__).resolve().parents[1]))
-_MODELS_DIR = Path(os.getenv("ROBO_REVIEWS_MODELS_DIR", _PROJECT_ROOT / "models"))
+_PROJECT_ROOT = Path(os.getenv("BESTOF_ROOT", Path(__file__).resolve().parents[1]))
+_MODELS_DIR = Path(os.getenv("BESTOF_MODELS_DIR", _PROJECT_ROOT / "models"))
 _MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 os.environ.setdefault("HF_HOME", str(_MODELS_DIR))

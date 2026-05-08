@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY . .
 
 ENV PYTHONPATH=/app
-ENV ROBO_REVIEWS_ROOT=/app
+ENV BESTOF_ROOT=/app
 
 EXPOSE 8000 8501
 

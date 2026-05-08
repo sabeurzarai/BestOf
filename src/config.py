@@ -10,12 +10,12 @@ from pathlib import Path
 
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 
-PROJECT_ROOT = Path(os.getenv("ROBO_REVIEWS_ROOT", Path(__file__).resolve().parents[1]))
+PROJECT_ROOT = Path(os.getenv("BESTOF_ROOT", Path(__file__).resolve().parents[1]))
 
-DATA_DIR = Path(os.getenv("ROBO_REVIEWS_DATA_DIR", PROJECT_ROOT / "data"))
-RAW_DATA_DIR = Path(os.getenv("ROBO_REVIEWS_RAW_DATA_DIR", DATA_DIR / "raw"))
-OUTPUTS_DIR = Path(os.getenv("ROBO_REVIEWS_OUTPUTS_DIR", PROJECT_ROOT / "outputs"))
-MODELS_DIR = Path(os.getenv("ROBO_REVIEWS_MODELS_DIR", PROJECT_ROOT / "models"))
+DATA_DIR = Path(os.getenv("BESTOF_DATA_DIR", PROJECT_ROOT / "data"))
+RAW_DATA_DIR = Path(os.getenv("BESTOF_RAW_DATA_DIR", DATA_DIR / "raw"))
+OUTPUTS_DIR = Path(os.getenv("BESTOF_OUTPUTS_DIR", PROJECT_ROOT / "outputs"))
+MODELS_DIR = Path(os.getenv("BESTOF_MODELS_DIR", PROJECT_ROOT / "models"))
 
 BLOGPOSTS_DIR = OUTPUTS_DIR / "blogposts"
 METRICS_DIR = OUTPUTS_DIR / "metrics"

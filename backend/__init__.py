@@ -1,1 +1,1 @@
-"""FastAPI package for RoboReviews."""
+"""FastAPI package for BestOf."""

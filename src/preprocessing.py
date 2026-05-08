@@ -1,4 +1,4 @@
-"""Dataset loading and cleaning for RoboReviews."""
+"""Dataset loading and cleaning for BestOf."""
 from __future__ import annotations
 
 import logging

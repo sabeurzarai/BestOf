@@ -1,4 +1,4 @@
-# RoboReviews — User Guide: Run and Deploy
+# BestOf — User Guide: Run and Deploy
 
 ## Dataset rule (read first)
 
@@ -25,7 +25,7 @@ Categories are discovered through clustering (4–6 via silhouette). The origina
 
 ## 1. What this guide covers
 
-How to run RoboReviews locally, in Docker, and on AWS EC2. The project includes:
+How to run BestOf locally, in Docker, and on AWS EC2. The project includes:
 
 - Preprocessing + rating-based sentiment labeling
 - TF-IDF terms → KMeans product clustering (default; also supports MiniLM embeddings, TF-IDF + Agglomerative, Keyword taxonomy)
@@ -38,7 +38,7 @@ How to run RoboReviews locally, in Docker, and on AWS EC2. The project includes:
 ## 2. Project structure
 
 ```
-robo-reviews/
+BestOf/
 ├── backend/
 │   ├── main.py            FastAPI app, endpoints, service singletons
 │   └── schemas.py         Pydantic v2 models
@@ -62,7 +62,7 @@ robo-reviews/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── README.md
-└── ROBO_REVIEWS_USER_GUIDE_DEPLOYMENT.md
+└── BESTOF_USER_GUIDE_DEPLOYMENT.md
 ```
 
 ---
@@ -81,7 +81,7 @@ robo-reviews/
 
 ```bash
 git clone <YOUR_REPO_URL>
-cd robo-reviews
+cd BestOf
 ```
 
 ### Virtual environment
@@ -122,7 +122,7 @@ mkdir -p data/raw
 ## 5. Run the pipeline as a script
 
 ```bash
-python -c "from src.pipeline import RoboReviewsPipeline; RoboReviewsPipeline().run_from_csv('data/raw/Datafiniti_Amazon_Consumer_Reviews_of_Amazon_Products.csv')"
+python -c "from src.pipeline import BestOfPipeline; BestOfPipeline().run_from_csv('data/raw/Datafiniti_Amazon_Consumer_Reviews_of_Amazon_Products.csv')"
 ```
 
 Outputs (see [src/pipeline.py](src/pipeline.py)):
@@ -152,7 +152,7 @@ Open: `http://localhost:8000/docs` (or `http://127.0.0.1:8000/docs`).
 4. **Module name**: `uvicorn`
 5. **Script parameters**: `backend.main:app --host 127.0.0.1 --port 8000 --reload`
 6. **Working directory**: project root, e.g.
-   `C:\path\to\robo-reviews`
+   `C:\path\to\BestOf`
 7. **Python interpreter**: the project's `.venv` (PyCharm usually picks this automatically)
 8. **Apply → Run** (or **Debug** for breakpoints)
 
@@ -180,7 +180,7 @@ Health check:
 
 ```bash
 curl http://127.0.0.1:8000/health
-# {"status":"ok","service":"robo-reviews"}
+# {"status":"ok","service":"BestOf"}
 ```
 
 ---
@@ -212,7 +212,7 @@ Fallback if **Module name** isn't available:
 python -m streamlit run streamlit_app/app.py
 ```
 
-The default API URL is `http://localhost:8000` (overridable via the `ROBO_REVIEWS_API_URL` env var; Docker Compose sets it to `http://backend:8000` automatically). Then:
+The default API URL is `http://localhost:8000` (overridable via the `BESTOF_API_URL` env var; Docker Compose sets it to `http://backend:8000` automatically). Then:
 
 - Upload the Datafiniti CSV (or use **Use all CSVs in data/raw**) → click **Process reviews**
 - The pipeline runs all 7 stages automatically — Stage 7 article generation always runs (no checkbox required)
@@ -341,11 +341,11 @@ docker-compose version
 
 ### 9.4 Clone the project on EC2
 
-The project is on GitHub at `https://github.com/sabeurzarai/robo-reviews`:
+The project is on GitHub at `https://github.com/sabeurzarai/BestOf`:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/robo-reviews.git robo-reviews
-cd robo-reviews
+git clone https://github.com/YOUR_USERNAME/BestOf.git BestOf
+cd BestOf
 mkdir -p data/raw
 ```
 
@@ -383,7 +383,7 @@ aws s3 cp s3://YOUR_S3_BUCKET/submissions.csv data/raw/
 
 ```bash
 export PATH=$PATH:/usr/local/bin
-cd ~/robo-reviews
+cd ~/BestOf
 docker-compose up --build -d
 docker-compose ps
 ```
@@ -426,7 +426,7 @@ aws ec2-instance-connect ssh --instance-id YOUR_INSTANCE_ID --region eu-central-
 
 ```bash
 export PATH=$PATH:/usr/local/bin
-cd ~/robo-reviews
+cd ~/BestOf
 git pull
 docker-compose down
 docker-compose up --build -d
@@ -438,8 +438,8 @@ docker-compose up --build -d
 
 ```bash
 sudo apt install -y python3-pip python3-venv git
-git clone <YOUR_REPO_URL> robo-reviews
-cd robo-reviews
+git clone <YOUR_REPO_URL> BestOf
+cd BestOf
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
@@ -468,7 +468,7 @@ curl http://127.0.0.1:8000/health
 Expected:
 
 ```json
-{ "status": "ok", "service": "robo-reviews" }
+{ "status": "ok", "service": "BestOf" }
 ```
 
 ### 11.2 `POST /upload-reviews`
@@ -710,7 +710,7 @@ Before presenting:
 pytest
 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 streamlit run streamlit_app/app.py
-python -c "from src.pipeline import RoboReviewsPipeline; RoboReviewsPipeline().run_from_csv('data/raw/Datafiniti_Amazon_Consumer_Reviews_of_Amazon_Products.csv')"
+python -c "from src.pipeline import BestOfPipeline; BestOfPipeline().run_from_csv('data/raw/Datafiniti_Amazon_Consumer_Reviews_of_Amazon_Products.csv')"
 
 # Docker
 docker compose up --build           # foreground
@@ -718,5 +718,5 @@ docker compose up --build -d        # detached
 docker compose down
 
 # EC2 update cycle
-cd ~/robo-reviews && git pull && docker compose down && docker compose up --build -d
+cd ~/BestOf && git pull && docker compose down && docker compose up --build -d
 ```

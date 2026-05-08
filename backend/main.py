@@ -1,4 +1,4 @@
-"""FastAPI application for RoboReviews."""
+"""FastAPI application for BestOf."""
 from __future__ import annotations
 
 import json
@@ -31,7 +31,7 @@ from src.summarization import RecommendationWriter
 configure_logging()
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="RoboReviews API", version="1.0.0")
+app = FastAPI(title="BestOf API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,7 +55,7 @@ def root() -> RedirectResponse:
 @app.get("/health")
 def health() -> dict:
     """A tiny endpoint that load balancers and humans can both understand."""
-    return {"status": "ok", "service": "robo-reviews"}
+    return {"status": "ok", "service": "bestof"}
 
 
 @app.post("/upload-reviews", response_model=UploadResponse)

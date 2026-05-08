@@ -1,7 +1,7 @@
 services:
   backend:
     build: .
-    container_name: robo-reviews-api
+    container_name: bestof-api
     command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
@@ -11,11 +11,11 @@ services:
       - ./models:/app/models
     environment:
       - PYTHONPATH=/app
-      - ROBO_REVIEWS_ROOT=/app
+      - BESTOF_ROOT=/app
 
   streamlit:
     build: .
-    container_name: robo-reviews-ui
+    container_name: bestof-ui
     command: streamlit run streamlit_app/app.py --server.address 0.0.0.0 --server.port 8501
     depends_on:
       - backend
@@ -27,5 +27,5 @@ services:
       - ./models:/app/models
     environment:
       - PYTHONPATH=/app
-      - ROBO_REVIEWS_ROOT=/app
-      - ROBO_REVIEWS_API_URL=http://backend:8000
+      - BESTOF_ROOT=/app
+      - BESTOF_API_URL=http://backend:8000

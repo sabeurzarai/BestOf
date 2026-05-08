@@ -1,4 +1,4 @@
-# RoboReviews
+# BestOf
 
 Turn messy Amazon reviews into clear buying advice.
 

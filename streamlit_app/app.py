@@ -1,4 +1,4 @@
-"""Streamlit demo UI for RoboReviews."""
+"""Streamlit demo UI for BestOf."""
 from __future__ import annotations
 
 import datetime
@@ -46,9 +46,9 @@ from src.preprocessing import category_normalization_report, fill_missing_catego
 from src.sentiment import SentimentAnalyzer
 from src.summarization import RecommendationWriter, build_safe_prompt
 
-st.set_page_config(page_title="RoboReviews", page_icon="RR", layout="wide")
+st.set_page_config(page_title="BestOf", page_icon="BO", layout="wide")
 
-DEFAULT_API_URL = os.getenv("ROBO_REVIEWS_API_URL", "http://localhost:8000")
+DEFAULT_API_URL = os.getenv("BESTOF_API_URL", "http://localhost:8000")
 API_URL = st.sidebar.text_input("API URL", DEFAULT_API_URL)
 
 
@@ -79,7 +79,7 @@ except ValueError:
 st.sidebar.caption(f"`{cache_label}` - {_dir_size_mb(MODELS_DIR):,.0f} MB on disk")
 
 _title_col, _restart_col = st.columns([8, 1])
-_title_col.title("RoboReviews")
+_title_col.title("BestOf")
 _title_col.caption("Upload reviews, discover product clusters, and generate practical buying advice.")
 if _restart_col.button("Restart", type="secondary", use_container_width=True, help="Reset all parameters and pipeline results to defaults"):
     _new_counter = st.session_state.get("_reset_counter", 0) + 1
