@@ -83,10 +83,38 @@ pytest
 
 ## Deploy on EC2
 
-1. Ubuntu instance, open ports 22 / 8000 / 8501
-2. `sudo apt install -y docker.io docker-compose-plugin git`
-3. Clone the repo, drop the CSV into `data/raw/`
-4. `docker compose up --build -d`
-5. Visit `http://<your-ip>:8501`
+**Instance:** Ubuntu 22.04, `t3.medium` (4 GB RAM min), ports 22 / 8000 / 8501 open.
+
+```bash
+# 1 — install Docker
+sudo apt update && sudo apt install -y docker.io git
+sudo usermod -aG docker ubuntu
+newgrp docker
+
+# 2 — install Docker Compose (pick one)
+sudo apt install -y docker-compose-plugin   # modern plugin  → use: docker compose
+# OR if the plugin is unavailable:
+sudo apt install -y docker-compose          # legacy v1      → use: docker-compose
+
+# 3 — clone and start (existing repo: just git pull)
+git clone https://github.com/sabeurzarai/BestOf
+cd BestOf
+
+# 4 — start (use whichever compose command is installed)
+docker compose up --build -d       # plugin version
+# docker-compose up --build -d     # legacy version
+
+# 5 — visit
+# UI  → http://<your-ec2-ip>:8501
+# API → http://<your-ec2-ip>:8000/docs
+```
+
+**Update an existing deployment:**
+```bash
+git pull
+docker compose up --build -d   # or docker-compose up --build -d
+```
+
+Data in `data/`, `outputs/`, and `models/` is mounted as a volume — never overwritten by builds.
 
 Pre-download Hugging Face models into `models/` for air-gapped hosts. Recommend ≥ 4 GB RAM for ML inference.
