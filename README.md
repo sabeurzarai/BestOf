@@ -12,8 +12,8 @@ Upload a review CSV → the app cleans it, labels sentiment, discovers 4–10 pr
 docker compose up --build
 ```
 
-- Streamlit UI: http://localhost:8501
-- API docs: http://localhost:8000/docs
+- Streamlit UI: http://18.157.233.122:8501
+- API docs: http://18.157.233.122:8000/docs
 
 **Locally:**
 
@@ -27,7 +27,7 @@ streamlit run streamlit_app/app.py  # terminal 2
 
 ## Use it
 
-1. Open http://localhost:8501
+1. Open http://18.157.233.122:8501
 2. Go to **Analytics Pipeline** and drop a CSV from `data/raw/` or upload one
 3. Click **Process reviews** — the 7-stage pipeline runs automatically
 4. Browse **Categories** — click **View details** on any card to see top products, complaints, and a generated buying guide
