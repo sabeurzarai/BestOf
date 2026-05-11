@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime
+import html
 import io
 import json
 import os
@@ -9,6 +10,7 @@ import re
 import time
 import hashlib
 import shutil
+from urllib.parse import quote_plus
 from pathlib import Path
 
 import altair as alt
@@ -49,7 +51,215 @@ from src.summarization import RecommendationWriter, build_safe_prompt
 st.set_page_config(page_title="BestOf", page_icon="BO", layout="wide")
 
 DEFAULT_API_URL = os.getenv("BESTOF_API_URL", "http://localhost:8000")
-API_URL = st.sidebar.text_input("API URL", DEFAULT_API_URL)
+
+
+def _inject_amazon_style() -> None:
+    st.markdown(
+        """
+        <style>
+        :root {
+            --bo-bg: #e3e6e6;
+            --bo-panel: #ffffff;
+            --bo-ink: #111827;
+            --bo-muted: #565959;
+            --bo-blue: #007185;
+            --bo-orange: #ff9900;
+            --bo-navy: #131921;
+            --bo-yellow: #febd69;
+        }
+        .stApp {
+            background: var(--bo-bg);
+            color: var(--bo-ink);
+        }
+        [data-testid="stSidebar"] {
+            background: var(--bo-navy);
+        }
+        [data-testid="stSidebar"] * {
+            color: #ffffff;
+        }
+        [data-testid="stSidebar"] [role="radiogroup"] label {
+            background: #232f3e;
+            border: 1px solid rgba(255,255,255,.14);
+            border-radius: 4px;
+            margin: 7px 0;
+            padding: 8px 10px;
+        }
+        [data-testid="stSidebar"] [role="radiogroup"] label:hover {
+            border-color: var(--bo-yellow);
+        }
+        .block-container {
+            padding-top: 1.25rem;
+            max-width: 1440px;
+        }
+        h1, h2, h3 {
+            color: var(--bo-ink);
+            letter-spacing: 0;
+        }
+        div.stButton > button[kind="primary"] {
+            background: #ffd814;
+            border: 1px solid #fcd200;
+            color: #111827;
+            border-radius: 999px;
+            font-weight: 700;
+        }
+        div.stButton > button[kind="secondary"] {
+            border-radius: 999px;
+        }
+        .bo-hero {
+            min-height: 260px;
+            padding: 34px 38px 96px;
+            color: #fff;
+            background:
+                linear-gradient(90deg, rgba(0,0,0,.88), rgba(0,0,0,.25), rgba(0,0,0,.62)),
+                radial-gradient(circle at 70% 15%, rgba(255,153,0,.35), transparent 24%),
+                linear-gradient(135deg, #131921 0%, #232f3e 40%, #4f3a20 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .bo-hero:after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+            background-size: 54px 54px;
+        }
+        .bo-hero > * {
+            position: relative;
+            z-index: 1;
+        }
+        .bo-hero h1 {
+            color: #fff;
+            font-size: 42px;
+            margin: 0 0 8px;
+        }
+        .bo-hero p {
+            max-width: 720px;
+            font-size: 18px;
+            color: #f2f4f7;
+            margin: 0;
+        }
+        .bo-card {
+            background: var(--bo-panel);
+            border-radius: 0;
+            padding: 20px;
+            min-height: 100%;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
+            border: 1px solid rgba(15,23,42,.05);
+        }
+        .bo-over-hero {
+            margin-top: -72px;
+            position: relative;
+            z-index: 5;
+        }
+        .bo-card h3 {
+            margin: 0 0 12px;
+            font-size: 22px;
+        }
+        .bo-product-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .bo-product {
+            min-width: 0;
+        }
+        .bo-product-img {
+            height: 118px;
+            background: #f3f3f3;
+            border: 1px solid #eeeeee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #232f3e;
+            font-size: 28px;
+            overflow: hidden;
+        }
+        .bo-product-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .bo-product-name {
+            margin-top: 8px;
+            color: #111827;
+            font-size: 14px;
+            line-height: 1.25;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .bo-muted {
+            color: var(--bo-muted);
+            font-size: 13px;
+        }
+        .bo-link {
+            color: var(--bo-blue);
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .bo-stars {
+            color: var(--bo-orange);
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        .bo-badge {
+            display: inline-block;
+            background: #cc0c39;
+            color: white;
+            border-radius: 2px;
+            padding: 3px 7px;
+            font-size: 12px;
+            font-weight: 800;
+            margin-right: 6px;
+        }
+        .bo-chip {
+            display: inline-block;
+            background: #e7f4f5;
+            color: #007185;
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .bo-category-card {
+            background: #fff;
+            border: 1px solid rgba(15,23,42,.08);
+            padding: 16px;
+            min-height: 210px;
+        }
+        .bo-review-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .bo-sentiment-positive { background: #e7f6ec; color: #067d35; }
+        .bo-sentiment-neutral { background: #eef2f7; color: #344054; }
+        .bo-sentiment-negative { background: #fff1f2; color: #b42318; }
+
+        /* ── Loading skeleton styling ──────────────────────────────────── */
+        /* Style Streamlit's native skeleton to match the app theme */
+        [data-testid="stSkeleton"] {
+            background: linear-gradient(90deg, #232f3e 25%, #2d3f50 50%, #232f3e 75%) !important;
+            background-size: 200% 100% !important;
+            animation: bo-shimmer 1.4s ease-in-out infinite !important;
+        }
+        @keyframes bo-shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+_inject_amazon_style()
 
 
 def _dir_size_mb(path: Path) -> float:
@@ -65,27 +275,43 @@ def _dir_size_mb(path: Path) -> float:
     return total / (1024 * 1024)
 
 
-st.sidebar.markdown("### Local files")
-st.sidebar.write(
-    "Drop compatible Amazon review CSVs into `data/raw/`; compatible files are "
-    "merged automatically and incompatible schemas are skipped. Blank `categories` "
-    "cells are filled during preprocessing from product name and review wording."
+st.sidebar.markdown("## BestOf")
+st.sidebar.caption("Amazon review intelligence")
+APP_PAGES = [
+    "Home",
+    "Sentiment Analyzer",
+    "Categories",
+    "Analytics Pipeline",
+    "Run History",
+    "Output Artifacts",
+]
+st.session_state.setdefault("current_page", "Home")
+page = st.sidebar.radio(
+    "Navigation",
+    APP_PAGES,
+    index=APP_PAGES.index(st.session_state.current_page),
+    label_visibility="collapsed",
 )
-st.sidebar.markdown("### Model cache")
+if page != st.session_state.current_page:
+    st.session_state.current_page = page
+with st.sidebar.expander("Settings", expanded=False):
+    API_URL = st.text_input("API URL", DEFAULT_API_URL)
+    st.markdown("### Local files")
+    st.write(
+        "Drop compatible Amazon review CSVs into `data/raw/`; compatible files are "
+        "merged automatically and incompatible schemas are skipped. Blank `categories` "
+        "cells are filled during preprocessing from product name and review wording."
+    )
+    st.markdown("### Model cache")
 try:
     cache_label = MODELS_DIR.relative_to(PROJECT_ROOT)
 except ValueError:
     cache_label = MODELS_DIR
-st.sidebar.caption(f"`{cache_label}` - {_dir_size_mb(MODELS_DIR):,.0f} MB on disk")
+with st.sidebar.expander("Storage", expanded=False):
+    st.caption(f"`{cache_label}` - {_dir_size_mb(MODELS_DIR):,.0f} MB on disk")
 
-_title_col, _restart_col = st.columns([8, 1])
-_title_col.title("BestOf")
-_title_col.caption("Upload reviews, discover product clusters, and generate practical buying advice.")
-if _restart_col.button("Restart", type="secondary", use_container_width=True, help="Reset all parameters and pipeline results to defaults"):
-    _new_counter = st.session_state.get("_reset_counter", 0) + 1
-    st.session_state.clear()
-    st.session_state["_reset_counter"] = _new_counter
-    st.rerun()
+st.title(page if page != "Home" else "BestOf")
+st.caption("Upload reviews, discover product clusters, and generate practical buying advice.")
 
 st.session_state.setdefault("_reset_counter", 0)
 st.session_state.setdefault("_last_run_ts", None)
@@ -93,6 +319,10 @@ st.session_state.setdefault("clustered_df", None)
 st.session_state.setdefault("insights", None)
 st.session_state.setdefault("articles", {})
 st.session_state.setdefault("stage_summary", [])
+if st.session_state.clustered_df is None and st.session_state.insights is None:
+    _pending_load_from_disk = True
+else:
+    _pending_load_from_disk = False
 
 _rc = st.session_state["_reset_counter"]
 
@@ -146,6 +376,10 @@ def _load_from_disk() -> None:
         st.session_state.insights = json.loads(insights_path.read_text(encoding="utf-8"))
     if clustered_path.exists():
         st.session_state.clustered_df = pd.read_csv(clustered_path)
+
+
+if _pending_load_from_disk:
+    _load_from_disk()
 
 
 def _write_json(path: Path, data: object) -> None:
@@ -585,71 +819,150 @@ def _render_top_three_table(insights: list[dict]) -> None:
     )
 
 
-def _render_insights() -> None:
+def _render_insight_body(insight: dict, clustered_df, suffix: str = "") -> None:
+    cat_id = insight["category_id"]
+    cat_name = insight["category_name"]
+    avg_rating = float(insight["avg_rating"])
+    review_count = int(insight["review_count"])
+    positive_pct = float(insight["sentiment_ratio"]["positive"])
+    top_products = insight.get("top_products", [])
+
+    # ── Hero header ──────────────────────────────────────────────────────────
+    st.markdown(
+        f"""
+        <section class="bo-hero" style="min-height:160px; padding:28px 38px 80px;">
+            <span class="bo-chip">{html.escape(cat_name)}</span>
+            <h1 style="font-size:32px; margin:10px 0 6px;">{html.escape(cat_name)}</h1>
+            <p style="font-size:15px;">
+                <span class="bo-stars">{"★" * round(avg_rating)}{"☆" * (5 - round(avg_rating))}</span>
+                &nbsp;<strong>{avg_rating:.2f}</strong>&nbsp;&nbsp;·&nbsp;&nbsp;
+                {review_count:,} reviews&nbsp;&nbsp;·&nbsp;&nbsp;
+                <span style="color:#86efac;">{positive_pct:.0%} positive</span>
+            </p>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # ── Top products + complaints cards (overlap hero) ────────────────────────
+    st.markdown('<div class="bo-over-hero">', unsafe_allow_html=True)
+    col_products, col_complaints = st.columns([3, 1])
+
+    with col_products:
+        product_tiles = "".join(
+            _product_tile(product, badge="Top pick" if idx == 0 else None)
+            for idx, product in enumerate(top_products)
+        )
+        st.markdown(
+            f'<div class="bo-card">'
+            f'<h3 style="margin-bottom:14px;">Top products</h3>'
+            f'<div class="bo-product-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));">{product_tiles}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    with col_complaints:
+        complaint_chips = "".join(
+            f'<span class="bo-chip" style="background:#fff1f2;color:#b42318;margin:4px 4px 4px 0;display:inline-block;">'
+            f'{html.escape(c.replace(" issues", ""))}</span>'
+            for c in insight.get("complaints", [])
+        )
+        st.markdown(
+            f'<div class="bo-card" style="min-height:100%;">'
+            f'<h3 style="margin-bottom:12px;">Common complaints</h3>'
+            f'<div>{complaint_chips}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── Recommendation article card ──────────────────────────────────────────
+    st.markdown('<div class="bo-card" style="margin-top:16px;">', unsafe_allow_html=True)
+    st.markdown("<h3>Recommendation article</h3>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    article = st.session_state.articles.get(cat_id)
+    col_regen, col_dl, _ = st.columns([1, 1, 4])
+    regen_clicked = col_regen.button("Regenerate", key=f"regen-{cat_id}{suffix}", disabled=not article)
+    if article:
+        col_dl.download_button(
+            "Download .md",
+            data=article,
+            file_name=f"{_slugify(cat_name)}.md",
+            mime="text/markdown",
+            key=f"dl-article-{cat_id}{suffix}",
+        )
+    if regen_clicked:
+        with st.spinner("Writing recommendation article..."):
+            writer = get_writer()
+            article = writer.generate(insight, **_current_llm_settings())
+            st.session_state.articles[cat_id] = article
+            BLOGPOSTS_DIR.mkdir(parents=True, exist_ok=True)
+            (BLOGPOSTS_DIR / f"{_slugify(cat_name)}.md").write_text(article, encoding="utf-8")
+            st.rerun()
+    if article:
+        st.markdown(
+            f'<div class="bo-card" style="margin-top:8px;">{article}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # ── Review drill-down ────────────────────────────────────────────────────
+    if clustered_df is not None:
+        cat_df = clustered_df[clustered_df["category_id"] == cat_id]
+        if not cat_df.empty:
+            products = sorted(cat_df["name"].astype(str).unique())
+            st.markdown(
+                '<div class="bo-card" style="margin-top:16px;">'
+                '<h3 style="margin-bottom:4px;">Customer reviews</h3>'
+                '<p class="bo-muted" style="margin-bottom:14px;">Select a product to browse its raw review cards.</p>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            chosen = st.selectbox("Product", ["-"] + products, key=f"product-{cat_id}{suffix}", label_visibility="collapsed")
+            if chosen != "-":
+                rows = cat_df[cat_df["name"] == chosen][["reviews.rating", "sentiment", "reviews.text"]].head(20)
+                cards_html = ""
+                for _, row in rows.iterrows():
+                    sentiment = str(row.get("sentiment", "neutral"))
+                    rating = int(row.get("reviews.rating", 0))
+                    text = html.escape(str(row.get("reviews.text", "")))
+                    stars = "★" * rating + "☆" * (5 - rating)
+                    cards_html += (
+                        f'<div class="bo-review-card">'
+                        f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+                        f'<span class="bo-stars" style="font-size:13px;">{stars}</span>'
+                        f'<span class="bo-sentiment-{sentiment}" style="padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;">{sentiment}</span>'
+                        f'</div>'
+                        f'<p style="margin:0;font-size:14px;line-height:1.55;color:#111827;">{text}</p>'
+                        f'</div>'
+                    )
+                st.markdown(cards_html, unsafe_allow_html=True)
+
+
+def _render_insights(use_expander: bool = True) -> None:
     insights = st.session_state.get("insights")
     clustered_df = st.session_state.get("clustered_df")
     if not insights:
         st.info("Run the pipeline or load the latest artifacts to see insights.")
         return
 
-    st.subheader(f"Insights - {len(insights)} discovered categories")
-    st.markdown("### Top 3 products by category")
-    _render_top_three_table(insights)
     for insight in insights:
-        cat_id = insight["category_id"]
         cat_name = insight["category_name"]
-        with st.expander(f"{cat_name} - {insight['review_count']:,} reviews", expanded=False):
-            top_cols = st.columns(3)
-            top_cols[0].metric("Average rating", insight["avg_rating"])
-            top_cols[1].metric("Reviews", f"{insight['review_count']:,}")
-            top_cols[2].metric("Positive", f"{insight['sentiment_ratio']['positive']:.1%}")
-
-            st.markdown("**Top products**")
-            st.dataframe(pd.DataFrame(insight["top_products"]), use_container_width=True, hide_index=True)
-
-            st.markdown("**Common complaints**")
-            for complaint in insight["complaints"]:
-                st.write(f"- {complaint}")
-
-            st.markdown("**Recommendation article**")
-            best_product = insight["top_products"][0]["name"] if insight["top_products"] else "the top-ranked product"
-            st.caption(
-                f"This category-level article is generated from the aggregated insights above. "
-                f"Its Best overall pick is the top-ranked product: {best_product}."
-            )
-            article = st.session_state.articles.get(cat_id)
-            col_gen, col_regen, col_dl = st.columns(3)
-            gen_clicked = col_gen.button("Generate", key=f"gen-{cat_id}", disabled=bool(article))
-            regen_clicked = col_regen.button("Regenerate", key=f"regen-{cat_id}", disabled=not article)
-            if article:
-                col_dl.download_button(
-                    "Download .md",
-                    data=article,
-                    file_name=f"{_slugify(cat_name)}.md",
-                    mime="text/markdown",
-                    key=f"dl-article-{cat_id}",
-                )
-            if gen_clicked or regen_clicked:
-                with st.spinner("Writing recommendation article..."):
+        if use_expander:
+            with st.expander(f"{cat_name} - {insight['review_count']:,} reviews", expanded=False):
+                _render_insight_body(insight, clustered_df)
+        else:
+            st.markdown(f"### {cat_name}")
+            cat_id = insight["category_id"]
+            if not st.session_state.articles.get(cat_id):
+                with st.spinner("Generating recommendation article..."):
                     writer = get_writer()
                     article = writer.generate(insight, **_current_llm_settings())
                     st.session_state.articles[cat_id] = article
                     BLOGPOSTS_DIR.mkdir(parents=True, exist_ok=True)
                     (BLOGPOSTS_DIR / f"{_slugify(cat_name)}.md").write_text(article, encoding="utf-8")
-                    st.rerun()
-            if article:
-                st.markdown(article)
-
-            if clustered_df is not None:
-                cat_df = clustered_df[clustered_df["category_id"] == cat_id]
-                if not cat_df.empty:
-                    products = sorted(cat_df["name"].astype(str).unique())
-                    st.markdown("**Review drill-down**")
-                    st.caption("Inspect raw review rows for any product in this category. This does not change the category-level article above.")
-                    chosen = st.selectbox("Choose a product to inspect", ["-"] + products, key=f"product-{cat_id}")
-                    if chosen != "-":
-                        rows = cat_df[cat_df["name"] == chosen][["reviews.rating", "sentiment", "reviews.text"]]
-                        st.dataframe(rows, use_container_width=True, hide_index=True)
+            _render_insight_body(insight, clustered_df, suffix="-detail")
 
 
 RUN_HISTORY_PATH = OUTPUTS_DIR / "runs_history.json"
@@ -962,11 +1275,272 @@ def _render_artifacts() -> None:
         st.info("No generated Markdown articles yet.")
 
 
-tab_pipeline, tab_runs, tab_artifacts = st.tabs(
-    ["Analytics Pipeline", "Run History", "Output Artifacts"]
-)
+def _short_name(name: str, limit: int = 38) -> str:
+    name = str(name).strip()
+    return name if len(name) <= limit else f"{name[: limit - 1]}..."
 
-with tab_pipeline:
+
+def _initials(name: str) -> str:
+    words = re.findall(r"[A-Za-z0-9]+", str(name))
+    if not words:
+        return "BO"
+    return "".join(word[0].upper() for word in words[:2])
+
+
+def _image_keywords(name: str) -> str:
+    text = str(name).lower()
+    keyword_map = [
+        (("tablet", "kindle", "fire hd", "ipad"), "tablet,electronics"),
+        (("cable", "usb", "charger", "adapter", "plug"), "usb,cable,electronics"),
+        (("speaker", "echo", "audio", "sound"), "speaker,electronics"),
+        (("tv", "stream", "remote", "stick"), "streaming,device,electronics"),
+        (("laptop", "keyboard", "mouse", "computer"), "laptop,keyboard,electronics"),
+        (("case", "sleeve", "bag", "cover"), "tablet,case,accessory"),
+        (("headphone", "earbud", "headset"), "headphones,electronics"),
+        (("battery", "power"), "battery,charger,electronics"),
+        (("camera",), "camera,electronics"),
+    ]
+    for needles, keywords in keyword_map:
+        if any(needle in text for needle in needles):
+            return keywords
+    clean_words = re.findall(r"[a-z0-9]+", text)
+    useful = [
+        word for word in clean_words
+        if word not in {"amazon", "basics", "certified", "refurbished", "with", "for"}
+    ][:2]
+    return ",".join(useful + ["electronics"]) if useful else "electronics,product"
+
+
+def _product_image_url(name: str) -> str:
+    keywords = quote_plus(_image_keywords(name))
+    lock = int(hashlib.sha1(str(name).encode("utf-8", errors="replace")).hexdigest()[:8], 16) % 90000 + 1000
+    return f"https://loremflickr.com/360/260/{keywords}?lock={lock}"
+
+
+def _go_to(page_name: str) -> None:
+    st.session_state.current_page = page_name
+    st.rerun()
+
+
+def _stars(value: float) -> str:
+    full = max(0, min(5, int(round(float(value)))))
+    return "★" * full + "☆" * (5 - full)
+
+
+def _product_tile(product: dict, badge: str | None = None) -> str:
+    name = html.escape(_short_name(product.get("name", "Product")))
+    rating = float(product.get("avg_rating", 0) or 0)
+    reviews = int(product.get("review_count", 0) or 0)
+    image_url = html.escape(_product_image_url(product.get("name", "Product")))
+    badge_html = f'<span class="bo-badge">{html.escape(badge)}</span>' if badge else ""
+    return (
+        '<div class="bo-product">'
+        f'<div class="bo-product-img"><img src="{image_url}" alt="{name}"></div>'
+        f'<div class="bo-product-name" title="{name}">{name}</div>'
+        f'<div><span class="bo-stars">{_stars(rating)}</span> <span class="bo-muted">{rating:.1f}</span></div>'
+        f'<div>{badge_html}<span class="bo-muted">{reviews:,} reviews</span></div>'
+        "</div>"
+    )
+
+
+def _render_product_grid(
+    title: str,
+    products: list[dict],
+    link_text: str,
+    empty_text: str,
+    target_page: str | None = None,
+) -> None:
+    if products:
+        tiles = "".join(_product_tile(product) for product in products[:4])
+        body = (
+            '<div class="bo-card">'
+            f"<h3>{html.escape(title)}</h3>"
+            f'<div class="bo-product-grid">{tiles}</div>'
+            "</div>"
+        )
+        st.markdown(body, unsafe_allow_html=True)
+        if target_page:
+            if st.button(link_text, key=f"nav-{_slugify(title)}", use_container_width=True):
+                _go_to(target_page)
+    else:
+        st.markdown(
+            '<div class="bo-card">'
+            f"<h3>{html.escape(title)}</h3>"
+            f'<p class="bo-muted">{html.escape(empty_text)}</p>'
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+
+def _flatten_top_products(insights: list[dict]) -> list[dict]:
+    products: list[dict] = []
+    for insight in insights:
+        for product in insight.get("top_products", []):
+            enriched = dict(product)
+            enriched["category_name"] = insight.get("category_name", "Category")
+            products.append(enriched)
+    return sorted(products, key=lambda item: (item.get("avg_rating", 0), item.get("review_count", 0)), reverse=True)
+
+
+def _render_home() -> None:
+    insights = st.session_state.get("insights") or []
+    clustered_df = st.session_state.get("clustered_df")
+    products = _flatten_top_products(insights)
+
+    st.markdown(
+        """
+        <section class="bo-hero">
+            <span class="bo-chip">Amazon review dashboard</span>
+            <h1>BestOf review intelligence</h1>
+            <p>Browse product categories like a shopping page, then use review sentiment and generated buying advice to see what customers actually liked.</p>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown('<div class="bo-over-hero">', unsafe_allow_html=True)
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        _render_product_grid("Continue browsing", products[:4], "See category results", "Run the pipeline to fill this card.", "Categories")
+    with c2:
+        _render_product_grid("Top rated products", products[4:8], "Explore top picks", "No ranked products yet.", "Categories")
+    with c3:
+        category_cards = [
+            {
+                "name": item["category_name"],
+                "avg_rating": item["avg_rating"],
+                "review_count": item["review_count"],
+            }
+            for item in insights[:4]
+        ]
+        _render_product_grid("Shop by category", category_cards, "Open Categories", "Categories will appear after a run.", "Categories")
+    with c4:
+        st.markdown('<div class="bo-card">', unsafe_allow_html=True)
+        st.markdown("<h3>Review health</h3>", unsafe_allow_html=True)
+        if insights:
+            total_reviews = sum(item["review_count"] for item in insights)
+            avg_positive = sum(item["sentiment_ratio"]["positive"] * item["review_count"] for item in insights) / max(total_reviews, 1)
+            avg_rating = sum(item["avg_rating"] * item["review_count"] for item in insights) / max(total_reviews, 1)
+            st.metric("Reviews analyzed", f"{total_reviews:,}")
+            st.metric("Average rating", f"{avg_rating:.2f}")
+            st.markdown(f'<span class="bo-badge">{avg_positive:.0%} positive</span>', unsafe_allow_html=True)
+        else:
+            st.info("Run the pipeline or load artifacts to see review health.")
+        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+
+def _render_sentiment_analyzer_page() -> None:
+    st.markdown(
+        """
+        <div class="bo-card">
+            <h3>Review sentiment analyzer</h3>
+            <p class="bo-muted">Paste a customer review and BestOf will classify it with the existing DistilBERT sentiment model.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    text = st.text_area(
+        "Review text",
+        placeholder="Example: The tablet is easy to use and the battery lasts all day.",
+        height=180,
+    )
+    analyze_clicked = st.button("Analyze review", type="primary", disabled=not text.strip())
+    if analyze_clicked:
+        with st.spinner("Analyzing sentiment..."):
+            sentiment = get_sentiment_analyzer().predict_text(text)
+        badge_class = f"bo-sentiment-{sentiment}"
+        st.markdown(
+            f"""
+            <div class="bo-review-card">
+                <span class="bo-chip {badge_class}">{html.escape(sentiment.title())}</span>
+                <div style="margin-top:12px"><span class="bo-stars">{'★★★★★' if sentiment == 'positive' else '★★★☆☆' if sentiment == 'neutral' else '★☆☆☆☆'}</span></div>
+                <p style="margin-top:12px">{html.escape(text)}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("### Batch labels in the pipeline")
+    st.caption("Pipeline aggregation still uses the rating-based ground-truth mapping: 1-2 negative, 3 neutral, 4-5 positive.")
+
+
+def _render_categories_page() -> None:
+    insights = st.session_state.get("insights") or []
+    if not insights:
+        st.info("Run the pipeline or load the latest artifacts to browse categories.")
+        return
+
+    st.markdown("### Shop by review category")
+    query = st.text_input("Search categories or products", placeholder="Search BestOf categories")
+    selected_category_id = st.session_state.get("selected_category_id")
+    filtered = []
+    needle = query.lower().strip()
+    for insight in insights:
+        haystack = " ".join(
+            [insight["category_name"]]
+            + [product["name"] for product in insight.get("top_products", [])]
+        ).lower()
+        if not needle or needle in haystack:
+            filtered.append(insight)
+
+    card_cols = st.columns(3)
+    for index, insight in enumerate(filtered):
+        with card_cols[index % 3]:
+            products_html = "".join(_product_tile(product, badge="Top pick" if idx == 0 else None) for idx, product in enumerate(insight.get("top_products", [])[:2]))
+            st.markdown(
+                '<div class="bo-category-card">'
+                f'<span class="bo-chip">{html.escape(str(insight["category_name"]))}</span>'
+                f'<h3>{html.escape(str(insight["category_name"]))}</h3>'
+                f'<div><span class="bo-stars">{_stars(float(insight["avg_rating"]))}</span> <strong>{float(insight["avg_rating"]):.2f}</strong></div>'
+                f'<div class="bo-muted">{int(insight["review_count"]):,} reviews - {float(insight["sentiment_ratio"]["positive"]):.0%} positive</div>'
+                f'<div class="bo-product-grid" style="margin-top:12px">{products_html}</div>'
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            if st.button("View details", key=f"view-cat-{insight['category_id']}", use_container_width=True):
+                st.session_state.selected_category_id = insight["category_id"]
+                st.rerun()
+
+    if selected_category_id is not None:
+        detail_insights = [
+            insight for insight in insights
+            if insight["category_id"] == selected_category_id
+        ]
+        # Anchor visible to the parent page, then scroll to it via components iframe.
+        # The category id in the script makes it unique so Streamlit re-executes it
+        # on every category switch instead of serving a cached no-op.
+        st.markdown('<div id="bo-category-detail"></div>', unsafe_allow_html=True)
+        import streamlit.components.v1 as components
+        components.html(
+            f"<script>"
+            f"/* cat={selected_category_id} */"
+            f"var el = window.parent.document.getElementById('bo-category-detail');"
+            f"if (el) el.scrollIntoView({{behavior: 'smooth', block: 'start'}});"
+            f"</script>",
+            height=0,
+        )
+        if st.button("← Back to categories", use_container_width=True):
+            st.session_state.selected_category_id = None
+            st.rerun()
+        original_insights = st.session_state.insights
+        st.session_state.insights = detail_insights
+        try:
+            _render_insights(use_expander=False)
+        finally:
+            st.session_state.insights = original_insights
+
+if page == "Home":
+    _render_home()
+
+if page == "Sentiment Analyzer":
+    _render_sentiment_analyzer_page()
+
+if page == "Categories":
+    _render_categories_page()
+
+if page == "Analytics Pipeline":
     st.subheader("Run the analytics pipeline")
     st.write(
         "Pick an input source: a single uploaded CSV or every compatible CSV inside "
@@ -1726,16 +2300,9 @@ with tab_pipeline:
         with slot_summary:
             _render_stage_summary()
 
-    if st.session_state.get("insights"):
-        st.divider()
-        st.markdown("## Top Products & Articles")
-        st.caption(
-            "The full results are shown here as well, so users do not have to leave the pipeline tab after processing."
-        )
-        _render_insights()
 
-with tab_runs:
+if page == "Run History":
     _render_runs_tab()
 
-with tab_artifacts:
+if page == "Output Artifacts":
     _render_artifacts()

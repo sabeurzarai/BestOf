@@ -16,6 +16,12 @@ MEMORY.md
 .claude-*
 .cursorrules
 
+# Presentation files
+presentation_workspace/
+~$*.pptx
+~$*.xlsx
+~$*.docx
+
 data/*
 !data/.gitkeep
 !data/raw/
